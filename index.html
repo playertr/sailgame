@@ -74,20 +74,20 @@
                     style: coastline
                 })
             ],
-            interactions: new ol.interaction.defaults.defaults({
-                dragRotate: false,
-                doubleClickZoom: false,
-                dragPan: false,
-                pinchRotate: false,
-                pinchZoom: false,
-                dragZoom: false,
-                dragAndDrop: false,
-                keyboardPan: false,
-                keyboardZoom: false,
-                mouseWheelZoom: false,
-                pointer: false,
-                select: false
-            }),
+            // interactions: new ol.interaction.defaults.defaults({
+            //     dragRotate: false,
+            //     doubleClickZoom: false,
+            //     dragPan: false,
+            //     pinchRotate: false,
+            //     pinchZoom: false,
+            //     dragZoom: false,
+            //     dragAndDrop: false,
+            //     keyboardPan: false,
+            //     keyboardZoom: false,
+            //     mouseWheelZoom: false,
+            //     pointer: false,
+            //     select: false
+            // }),
             target: 'olMap',
             view: new ol.View({
                 center: [0, 0],
@@ -101,51 +101,56 @@
             if (!windy) {
                 return;
             }
+
             windy.stop();
+
             var mapSize = map.getSize();
             var extent = map.getView().calculateExtent(mapSize);
-            extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
+            extent = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326')
+
+            // Transform from longitude,latitude to screen coordinates.
+            var project_cb = function (lon, lat) {
+                return map.getPixelFromCoordinate(ol.proj.fromLonLat([lon, lat], 'EPSG:3857'))
+            }
 
             canvas.width = mapSize[0];
             canvas.height = mapSize[1];
 
             windy.start(
-                [[0, 0], [canvas.width, canvas.height]],
-                canvas.width,
-                canvas.height,
-                [[extent[0], extent[1]], [extent[2], extent[3]]]
+                project_cb,
+                extent
             );
         }
 
         fetch('gfs.json').then(function (response) {
             return response.json();
         }).then(function (json) {
-            windy = new Windy({ canvas: canvas, data: json });
+            windy = new Windy({ canvas: canvas, data: json}, );
             refreshWindy();
         });
 
         map.on('moveend', refreshWindy);
 
-        ctx = document.getElementById('gameMap').getContext("2d");
+        // ctx = document.getElementById('gameMap').getContext("2d");
 
-        function draw() {
-            var x = 0
-            var y = 0
+        // function draw() {
+        //     var x = 0
+        //     var y = 0
 
-            //  Select the colour to fill the canvas
-            ctx.fillStyle = "white"
-            //  Select the colour for the border of the canvas
-            ctx.strokestyle = "darkblue";
+        //     //  Select the colour to fill the canvas
+        //     ctx.fillStyle = "white"
+        //     //  Select the colour for the border of the canvas
+        //     ctx.strokestyle = "darkblue";
 
-            // Draw a "filled" rectangle to cover the entire canvas
-            ctx.fillRect(x, y, 50, 50);
-            // Draw a "border" around the entire canvas
-            ctx.strokeRect(x, y, 50, 50);
+        //     // Draw a "filled" rectangle to cover the entire canvas
+        //     ctx.fillRect(x, y, 50, 50);
+        //     // Draw a "border" around the entire canvas
+        //     ctx.strokeRect(x, y, 50, 50);
 
-            console.log("Drew square.")
-        }
+        //     console.log("Drew square.")
+        // }
 
-        draw()
+        // draw()
 
 // document.addEventListener("keydown", keyDownEvent)
 
