@@ -1,17 +1,15 @@
-
+export {Windy, WindDB};
 
 const VELOCITY_SCALE = 5;                   // scale for wind velocity (arbitrary)
-const MAX_PARTICLE_NUM = 8000;
+const MAX_PARTICLE_NUM = 5000;
 const MAX_WIND_INTENSITY = 40;                // wind velocity at which particle intensity is maximum (m/s)
 const PARTICLE_LINE_WIDTH = 2;                // line width of a drawn particle
-const FRAME_RATE = 30;                        // desired milliseconds per frame
-const MAX_PARTICLE_AGE = 50;
 const EARTH_R = 6371229;                      // radius in meters
 const BLACK_THRESHOLD = 0.1                    // alpha of RGBA to turn to black
 const RESPAWN_PROB = 0.05
 var VELOCITY;                                   // particle speed, set from extent area
 
-var defaultRampColors = [
+const defaultRampColors = [
     [0.0, 0x3288bd],
     [0.1, 0x66c2a5],
     [0.3, 0xe6f598],
@@ -22,6 +20,165 @@ var defaultRampColors = [
     [1.0, 0xd53e4f],
     [Infinity, 0xd53e4f]
 ];
+
+var Windy = function (params) {
+
+    // create a wind database
+    var wind_db = params.wind_db;
+
+    // create a bunch of particles
+    var particles = [];
+
+    var project; // function to lon,lat to pixels, initialized later
+
+    function animate_frame ( canvas ) {
+
+        // a list of [line, color] pairs
+        var lines_colors = []
+        // update each of the particles, recording their motions
+        for (var i = 0; i < particles.length; ++i) {
+
+            var p = particles[i]
+            var old_lon = p.lon, old_lat = p.lat
+            var c1 = [p.x, p.y]
+
+            // find the velocity at the particle's location
+            var v = wind_db(old_lon, old_lat)
+            
+            // move the particle, updating its location
+            p.update(v[0], v[1], VELOCITY)
+
+            // store the line segment from the move
+            if (isNaN(c1[0]) ) {
+                c1 = project(old_lon, old_lat);
+            }
+            var c2 = project(p.lon, p.lat)
+            var line = {
+                x: c1[0], 
+                y: c1[1], 
+                xt: c2[0],
+                yt: c2[1]
+            }
+            if ( ! p.justRespawned ) {
+                lines_colors.push([line, windColorMap(v[2])])
+            }
+        }
+
+        // Fade existing particle trails.
+        var g = canvas.getContext("2d");
+        var prev = g.globalCompositeOperation;
+        g.imageSmoothingEnabled = false;
+        g.lineWidth = PARTICLE_LINE_WIDTH;
+        g.fillStyle = "rgba(1, 1, 1, 0.97)"
+        g.globalCompositeOperation = "destination-in";
+        g.fillRect(0, 0, canvas.width, canvas.height);
+        g.globalCompositeOperation = prev;
+        g.globalAlpha = 1
+
+        // Threshold out ghosted trails from alpha FP error
+        // var imageData = g.getImageData(0, 0, canvas.width, canvas.height)
+        // var data = imageData.data
+        // for (let i = 0; i < data.length; i += 4) {
+        //     if ( data[i+3] < BLACK_THRESHOLD ) {
+        //         data[i] = data[i+1] = data[i+2] = data[i+3]= 0;
+        //     }
+        // }
+        // g.putImageData(imageData, 0, 0)
+
+        // Draw new particle trails.
+        lines_colors.forEach(function (line_color, i) {
+            var line = line_color[0]
+            var color = line_color[1]
+
+            g.beginPath();
+            g.strokeStyle = color;
+            g.moveTo(line.x, line.y);
+            g.lineTo(line.xt, line.yt);
+            g.stroke();
+        });
+
+    }
+
+    var start = function (project_tf, extent) {
+        project = project_tf
+
+        VELOCITY = Math.pow(extent[2] - extent[0], 0.5) * 
+            Math.pow(extent[3] - extent[1], 0.5) * VELOCITY_SCALE
+        
+        for (var i = 0; i < MAX_PARTICLE_NUM; i++) {
+            particles.push(new Particle(extent));
+            particles[i].respawn()
+        }
+
+    };
+
+    var stop = function () {
+        particles = []
+    };
+
+    var windy = {
+        params: params,
+        start: start,
+        stop: stop,
+        animate_frame: animate_frame
+    };
+
+    return windy;
+}
+
+/**
+ * A linear interpolator for hex colors.
+ *
+ * Based on:
+ * https://gist.github.com/rosszurowski/67f04465c424a9bc0dae
+ *
+ * @param {Number} a  (hex color start val)
+ * @param {Number} b  (hex color end val)
+ * @param {Number} amount  (the amount to fade from a to b)
+ *
+ * @example
+ * // returns 0x7f7f7f
+ * lerpColor(0x000000, 0xffffff, 0.5)
+ *
+ * @returns {Number}
+ */
+function lerpColor(a, b, amount) {
+    const ar = a >> 16,
+        ag = a >> 8 & 0xff,
+        ab = a & 0xff,
+
+        br = b >> 16,
+        bg = b >> 8 & 0xff,
+        bb = b & 0xff,
+
+        rr = ar + amount * (br - ar),
+        rg = ag + amount * (bg - ag),
+        rb = ab + amount * (bb - ab);
+
+    return `#${((rr << 16) + (rg << 8) + (rb | 0)).toString(16).padStart(6, '0').slice(-6)}`
+};
+
+function windColorMap(wind) {
+    // convert to 0 - 1 scale
+    var frac = Math.abs(wind / MAX_WIND_INTENSITY)
+    var remainder;
+
+    // find color that is above and below this fraction
+    var lower, upper;
+    for (let i=0; i < defaultRampColors.length; ++i) {
+        if (frac > defaultRampColors[i][0]){
+            var bot = defaultRampColors[i][0];
+            var top = defaultRampColors[i+1][0];
+            lower = defaultRampColors[i][1];
+            upper = defaultRampColors[i+1][1];
+            remainder = (frac - bot) / (top - bot)
+        }
+    }
+
+    // linear interpolate
+    var hex = lerpColor(lower, upper, remainder)
+    return hex;
+}
 
 /**
  * @returns {Boolean} true if the specified value is not null and not undefined.
@@ -121,13 +278,6 @@ var WindDB = function (data) {
     return interpolate;
 }
 
-// restrict angle x to (-m, m)
-var wrap_m = function (x, m) {
-    while ( x < -m ) { x = x + m }
-    while (x > m) { x = x - m }
-    return x
-}
-
 class Particle {
 
     constructor (extent) {
@@ -166,186 +316,3 @@ class Particle {
         }
     }
 }
-
-var Windy = function (params) {
-
-
-    // create a wind database
-    var wind_db = WindDB(params.data)
-
-    // create a bunch of particles
-    var particles = []
-
-    /**
-     * A linear interpolator for hex colors.
-     *
-     * Based on:
-     * https://gist.github.com/rosszurowski/67f04465c424a9bc0dae
-     *
-     * @param {Number} a  (hex color start val)
-     * @param {Number} b  (hex color end val)
-     * @param {Number} amount  (the amount to fade from a to b)
-     *
-     * @example
-     * // returns 0x7f7f7f
-     * lerpColor(0x000000, 0xffffff, 0.5)
-     *
-     * @returns {Number}
-     */
-    const lerpColor = function(a, b, amount) {
-        const ar = a >> 16,
-            ag = a >> 8 & 0xff,
-            ab = a & 0xff,
-
-            br = b >> 16,
-            bg = b >> 8 & 0xff,
-            bb = b & 0xff,
-
-            rr = ar + amount * (br - ar),
-            rg = ag + amount * (bg - ag),
-            rb = ab + amount * (bb - ab);
-
-        return `#${((rr << 16) + (rg << 8) + (rb | 0)).toString(16).padStart(6, '0').slice(-6)}`
-    };
-
-    function windColorMap(wind) {
-        // convert to 0 - 1 scale
-        var frac = Math.abs(wind / MAX_WIND_INTENSITY)
-        var remainder;
-
-        // find color that is above and below this fraction
-        var lower, upper;
-        for (let i=0; i < defaultRampColors.length; ++i) {
-            if (frac > defaultRampColors[i][0]){
-                var bot = defaultRampColors[i][0];
-                var top = defaultRampColors[i+1][0];
-                lower = defaultRampColors[i][1];
-                upper = defaultRampColors[i+1][1];
-                remainder = (frac - bot) / (top - bot)
-            }
-        }
-
-        // linear interpolate
-        var hex = lerpColor(lower, upper, remainder)
-        return hex
-    }
-
-    function animate () {
-
-        // a list of [line, color] pairs
-        var lines_colors = []
-        // update each of the particles, recording their motions
-        for (var i = 0; i < particles.length; i++) {
-
-            var p = particles[i]
-            var old_lon = p.lon, old_lat = p.lat
-            var c1 = [p.x, p.y]
-
-            // find the velocity at the particle's location
-            var v = wind_db(old_lon, old_lat)
-            
-            // move the particle, updating its location
-            p.update(v[0], v[1], VELOCITY)
-
-            // store the line segment from the move
-            if (isNaN(c1[0]) ) {
-                c1 = project(old_lon, old_lat);
-            }
-            var c2 = project(p.lon, p.lat)
-            var line = {
-                x: c1[0], 
-                y: c1[1], 
-                xt: c2[0],
-                yt: c2[1]
-            }
-            if ( ! p.justRespawned ) {
-                lines_colors.push([line, windColorMap(v[2])])
-            }
-        }
-
-        // Fade existing particle trails.
-        var g = params.canvas.getContext("2d");
-        var prev = g.globalCompositeOperation;
-        g.imageSmoothingEnabled = false;
-        g.lineWidth = PARTICLE_LINE_WIDTH;
-        g.fillStyle = "rgba(1, 1, 1, 0.97)"
-        g.globalCompositeOperation = "destination-in";
-        g.fillRect(0, 0, params.canvas.width, params.canvas.height);
-        g.globalCompositeOperation = prev;
-        g.globalAlpha = 1
-
-        // Threshold out ghosted trails from alpha FP error
-        // var imageData = g.getImageData(0, 0, params.canvas.width, params.canvas.height)
-        // var data = imageData.data
-        // for (let i = 0; i < data.length; i += 4) {
-        //     if ( data[i+3] < BLACK_THRESHOLD ) {
-        //         data[i] = data[i+1] = data[i+2] = data[i+3]= 0;
-        //     }
-        // }
-        // g.putImageData(imageData, 0, 0)
-
-        // Draw new particle trails.
-        lines_colors.forEach(function (line_color, i) {
-            var line = line_color[0]
-            var color = line_color[1]
-
-            g.beginPath();
-            g.strokeStyle = color;
-            g.moveTo(line.x, line.y);
-            g.lineTo(line.xt, line.yt);
-            g.stroke();
-        });
-
-        console.log("requesting animation!")
-        try {
-            windy.timer = setTimeout(function () {
-                requestAnimationFrame(animate);
-            }, 1000 / FRAME_RATE);
-        }
-        catch (e) {
-            console.error(e);
-        }
-
-    }
-
-    var start = function (project_tf, extent) {
-        project = project_tf
-
-        VELOCITY = Math.pow(extent[2] - extent[0], 0.5) * 
-            Math.pow(extent[3] - extent[1], 0.5) * VELOCITY_SCALE
-        
-        for (var i = 0; i < MAX_PARTICLE_NUM; i++) {
-            particles.push(new Particle(extent));
-            particles[i].respawn()
-        }
-
-        console.log("Made it to start!")
-        
-        animate();
-    };
-
-    var stop = function () {
-        particles = []
-        if (windy.timer) clearTimeout(windy.timer)
-    };
-
-    var windy = {
-        params: params,
-        start: start,
-        stop: stop
-    };
-
-    return windy;
-}
-
-// shim layer with setTimeout fallback
-window.requestAnimationFrame = (function () {
-    return window.requestAnimationFrame ||
-        window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        window.oRequestAnimationFrame ||
-        window.msRequestAnimationFrame ||
-        function (callback) {
-            window.setTimeout(callback, 1000 / 15);
-        };
-})();
