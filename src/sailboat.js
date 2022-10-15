@@ -113,7 +113,7 @@ class Sailboat{
 
     // draw a line from the bow for how fast it is
     drawSpeed(canvas, lonlatdt, fillstyle="white", strokestyle="white") {
-        var ctx = canvas.getContext('2d');
+        var ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         var pixels = this.projection(this.lon, this.lat);
         var x = pixels[0];
@@ -135,7 +135,7 @@ class Sailboat{
     // draw the given list of coords
     draw(canvas, fillstyle="white", strokestyle="white") {
 
-        var ctx = canvas.getContext('2d');
+        var ctx = canvas.getContext('2d', { willReadFrequently: true });
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         var coords = this.shape_coords;
         coords = scale(coords, 20);

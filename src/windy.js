@@ -65,7 +65,7 @@ var Windy = function (params) {
         }
 
         // Fade existing particle trails.
-        var g = canvas.getContext("2d");
+        var g = canvas.getContext("2d", { willReadFrequently: true });
         var prev = g.globalCompositeOperation;
         g.imageSmoothingEnabled = false;
         g.lineWidth = PARTICLE_LINE_WIDTH;

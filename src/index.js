@@ -5,7 +5,7 @@ const FRAME_RATE = 60;
 
 // desired width and height in pixels
 function resizeCanvas(canvas, canvasWidth, canvasHeight) {
-    var ctx = canvas.getContext('2d')
+    var ctx = canvas.getContext('2d', { willReadFrequently: true })
     if (window.devicePixelRatio > 1) {
 
         canvas.width = canvasWidth * window.devicePixelRatio;
