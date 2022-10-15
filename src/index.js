@@ -25,16 +25,28 @@ const coastline = new ol.style.Style({
         width: 1,
     }),
 });
+const land = new ol.style.Style({
+    fill: new ol.style.Fill({
+        color: 'clear'
+    })
+});
 
 var map = new ol.Map({
     layers: [
         new ol.layer.VectorTile({
             source: new ol.source.VectorTile({
-                format: new ol.format.MVT({ layerName: 'layer', layers: ['Coastline'] }),
+                format: new ol.format.MVT({featureClass: ol.Feature, layerName: 'land', layers: ['Land'] }),
+                url: 'https://basemaps.arcgis.com/v1/arcgis/rest/services/World_Basemap/VectorTileServer/tile/{z}/{y}/{x}.pbf',
+            }),
+            style: land //new ol.style.Style({}) // invisible
+        }),
+        new ol.layer.VectorTile({
+            source: new ol.source.VectorTile({
+                format: new ol.format.MVT({featureClass: ol.Feature, layerName: 'coastline', layers: ['Coastline'] }),
                 url: 'https://basemaps.arcgis.com/v1/arcgis/rest/services/World_Basemap/VectorTileServer/tile/{z}/{y}/{x}.pbf',
             }),
             style: coastline
-        })
+        }),
     ],
     interactions: new ol.interaction.defaults.defaults({
         dragRotate: false,
@@ -57,9 +69,21 @@ var map = new ol.Map({
     }),
     pixelRatio: window.pixelRatio
 });
+
 // Transform from longitude,latitude to screen coordinates.
 var project_cb = function (lon, lat) {
     return map.getPixelFromCoordinate(ol.proj.fromLonLat([lon, lat], 'EPSG:3857'))
+}
+
+// See whether a given pixel is on land
+var is_on_land = function(x, y) {
+    var on_land = false
+    map.forEachFeatureAtPixel([x, y], function(feature, layer) {
+        if(feature.getProperties()['land'] == 'Land') {
+            on_land = true // returning true here didn't work
+        }
+    })
+    return on_land
 }
 
 var windy;
@@ -128,7 +152,7 @@ fetch('./gfs.json').then(function (response) {
 
     windy = new Windy({ wind_db: wind_db});
 
-    s = new Sailboat(wind_db, project_cb);
+    s = new Sailboat(wind_db, project_cb, is_on_land);
     s.lon = 0;
     s.lat = 0;
     s.hdg = Math.PI/16;

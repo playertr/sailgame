@@ -7,7 +7,8 @@ const RUDDER_SCALE = 1;
 
 class Sailboat{
 
-    constructor(wind_db, projection) {
+    constructor(wind_db, projection, is_on_land) {
+        this.is_on_land = is_on_land
         this.projection = projection
         this.wind_db = wind_db
         this.lat = 0 // deg
@@ -88,13 +89,24 @@ class Sailboat{
         // steer the boat
         this.hdg += this.rudder * dt * RUDDER_SCALE;
 
-        // move the boat
+        // move the boat forward
         var vel = this.find_velocity(this.wind_db(this.lon, this.lat), this.drifting)
-
         var lon_lat_dt = this.find_lon_lat_dt(vel, dt * VELOCITY_SCALE)
 
-        this.lon += lon_lat_dt[0]
-        this.lat += lon_lat_dt[1]
+        // don't move the boat onto land
+        var new_lon = this.lon + lon_lat_dt[0]
+        var new_lat = this.lat + lon_lat_dt[1]
+        var pixels = this.projection(new_lon, new_lat);
+        var x = pixels[0];
+        var y = pixels[1];
+        var on_land = this.is_on_land(x, y)
+        console.log(on_land)
+        if ( on_land ) {
+            return
+        }
+
+        this.lon = new_lon
+        this.lat = new_lat
 
         // handle projection discontinuities
         this.lon = wrap_180(this.lon)
