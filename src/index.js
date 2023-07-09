@@ -36,14 +36,14 @@ var map = new ol.Map({
         new ol.layer.VectorTile({
             source: new ol.source.VectorTile({
                 format: new ol.format.MVT({featureClass: ol.Feature, layerName: 'land', layers: ['Land'] }),
-                url: 'https://basemaps.arcgis.com/v1/arcgis/rest/services/World_Basemap/VectorTileServer/tile/{z}/{y}/{x}.pbf',
+                url: 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf'
             }),
             style: land //new ol.style.Style({}) // invisible
         }),
         new ol.layer.VectorTile({
             source: new ol.source.VectorTile({
                 format: new ol.format.MVT({featureClass: ol.Feature, layerName: 'coastline', layers: ['Coastline'] }),
-                url: 'https://basemaps.arcgis.com/v1/arcgis/rest/services/World_Basemap/VectorTileServer/tile/{z}/{y}/{x}.pbf',
+                url: 'https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/tile/{z}/{y}/{x}.pbf'
             }),
             style: coastline
         }),
