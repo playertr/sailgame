@@ -1,64 +1,46 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <title>windy.js integration example</title>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <!-- <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width"> -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.1.0/ol.css">
-
-    <style type="text/css">
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
+  <head>
+    <meta charset="UTF-8">
+    <title>TopoJSON</title>
+    <!-- <link rel="stylesheet" href="node_modules/ol/ol.css"> -->
+    <style>
+        html, body {
+        height: 100%;
+        margin: 0;
+        background: black;
+        }
+        .map {
+          position: absolute!important;
+          top: 0%;
+          left: 0%;
+          width: 100%;
+          height: 100%;
+          margin: 0;
         }
 
-        #map {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            background: black;
-        }
-
-        div.fill {
-            width: 100%;
-            height: 100%;
+        #olMap {
+          background: black;
         }
 
         #windyMap {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
+          z-index: 1;
+          pointer-events: none;
         }
 
         #gameMap {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-            pointer-events: none;
+          z-index: 2;
+          pointer-events: none;
         }
-
         .ol-control {
             z-index: 3;
         }
-    </style>
-</head>
-
-<body>
-    <div id="map" class="map">
-        <canvas id="gameMap" class="fill"></canvas>
-        <canvas id="windyMap" class="fill"></canvas>
-        <div id="olMap" class="fill"></div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/ol@v7.1.0/dist/ol.js"></script>
-    <script src="./index.js" type="module"></script>
-</body>
-
+      </style>
+  </head>
+  <body>
+    <div id="olMap" class="map"></div>
+    <canvas id="gameMap" class="map"></canvas>
+    <canvas id="windyMap" class="map"></canvas>
+    <script type="module" src="main.js"></script>
+  </body>
 </html>
