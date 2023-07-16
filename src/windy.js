@@ -53,6 +53,7 @@ var Windy = function (params) {
                 c1 = project(old_lon, old_lat);
             }
             var c2 = project(p.lon, p.lat)
+
             var line = {
                 x: c1[0], 
                 y: c1[1], 
