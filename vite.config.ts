@@ -1,4 +1,4 @@
-import viteCompression from 'vite-plugin-compression2';
+// import viteCompression from 'vite-plugin-compression2';
 
 export default () => {
   return {
@@ -7,6 +7,6 @@ export default () => {
     build: {
       outDir: '../dist'
     },
-    plugins: [viteCompression({deleteOriginalAssets: true})],
+    // plugins: [viteCompression({deleteOriginalAssets: true})],
   };
 };
