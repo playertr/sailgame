@@ -1,7 +1,7 @@
 # sailgame
 A little game to sail a little boat around.
 
-**Try me on Github Pages [here](https://playertr.github.io/sailgame/src/index.html)!**
+**Try me on Github Pages [here](https://playertr.github.io/sailgame/)!**
 
 # Inspiration
 Uses the color scheme from [webgl-wind](https://github.com/mapbox/webgl-wind) (ISC License).
